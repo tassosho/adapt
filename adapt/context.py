@@ -127,7 +127,6 @@ class ContextManager(object):
         if not max_frames or max_frames > len(self.frame_stack):
             max_frames = len(self.frame_stack)
 
-        missing_entities = list(missing_entities)
         context = []
         for i in xrange(max_frames):
             frame_entities = [entity.copy() for entity in self.frame_stack[i].entities]
@@ -136,7 +135,7 @@ class ContextManager(object):
             context += frame_entities
 
         result = []
-        if len(missing_entities) > 0:
+        if missing_entities := list(missing_entities):
             for entity in context:
                 if entity.get('data') in missing_entities:
                     result.append(entity)

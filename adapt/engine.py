@@ -90,9 +90,8 @@ class IntentDeterminationEngine(pyee.EventEmitter):
         Returns:
             list: A list of the unused context results.
         """
-        tags_keys = set([t['key'] for t in parse_result['tags'] if t['from_context']])
-        result_context = [c for c in context if c['key'] not in tags_keys]
-        return result_context
+        tags_keys = {t['key'] for t in parse_result['tags'] if t['from_context']}
+        return [c for c in context if c['key'] not in tags_keys]
 
     def determine_intent(self, utterance, num_results=1, include_tags=False, context_manager=None):
         """
@@ -112,10 +111,7 @@ class IntentDeterminationEngine(pyee.EventEmitter):
                   (lambda result:
                    self.emit("tagged_entities", result)))
 
-        context = []
-        if context_manager:
-            context = context_manager.get_context()
-
+        context = context_manager.get_context() if context_manager else []
         for result in parser.parse(utterance, N=num_results, context=context):
             self.emit("parse_result", result)
             # create a context without entities used in result
@@ -165,7 +161,7 @@ class IntentDeterminationEngine(pyee.EventEmitter):
         if hasattr(intent_parser, 'validate') and callable(intent_parser.validate):
             self.intent_parsers.append(intent_parser)
         else:
-            raise ValueError("%s is not an intent parser" % str(intent_parser))
+            raise ValueError(f"{str(intent_parser)} is not an intent parser")
 
 
 class DomainIntentDeterminationEngine(object):
@@ -339,13 +335,10 @@ class DomainIntentDeterminationEngine(object):
         for domain in self.domains:
             gen = self.domains[domain].determine_intent(utterance=utterance,
                                                         num_results=1)
-            for intent in gen:
-                intents.append(intent)
-
+            intents.extend(iter(gen))
         heapq.nlargest(
             num_results, intents, key=lambda domain: domain['confidence'])
-        for intent in intents:
-            yield intent
+        yield from intents
 
     def register_intent_parser(self, intent_parser, domain=0):
         """

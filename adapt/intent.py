@@ -50,10 +50,7 @@ def find_first_tag(tags, entity_type, after_index=-1):
 
 
 def find_next_tag(tags, end_index=0):
-    for tag in tags:
-        if tag.get('start_token') > end_index:
-            return tag
-    return None
+    return next((tag for tag in tags if tag.get('start_token') > end_index), None)
 
 
 def choose_1_from_each(lists):
@@ -99,10 +96,9 @@ def resolve_one_of(tags, at_least_one):
             tag, value, c = find_first_tag(tags, entity_type, after_index=last_end_index)
             if not tag:
                 break
-            else:
-                if entity_type not in resolution:
-                    resolution[entity_type] = []
-                resolution[entity_type].append(tag)
+            if entity_type not in resolution:
+                resolution[entity_type] = []
+            resolution[entity_type].append(tag)
         if len(resolution) == len(possible_resolution):
             return resolution
 
@@ -164,11 +160,7 @@ class Intent(object):
             intent_confidence += confidence
 
         if len(self.at_least_one) > 0:
-            best_resolution = resolve_one_of(tags, self.at_least_one)
-            if not best_resolution:
-                result['confidence'] = 0.0
-                return result, []
-            else:
+            if best_resolution := resolve_one_of(tags, self.at_least_one):
                 for key in best_resolution:
                     result[key] = best_resolution[key][0].get('key') # TODO: at least one must support aliases
                     intent_confidence += 1.0
@@ -176,6 +168,9 @@ class Intent(object):
                 if best_resolution in local_tags:
                     local_tags.remove(best_resolution)
 
+            else:
+                result['confidence'] = 0.0
+                return result, []
         for optional_type, attribute_name in self.optional:
             optional_tag, canonical_form, conf = find_first_tag(local_tags, optional_type)
             if not optional_tag or attribute_name in result:

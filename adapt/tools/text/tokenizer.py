@@ -55,16 +55,16 @@ class EnglishTokenizer(object):
         """
         s = string
         s = re.sub('\t', " ", s)
-        s = re.sub("(" + regex_separator + ")", " \g<1> ", s)
+        s = re.sub(f"({regex_separator})", " \g<1> ", s)
         s = re.sub("([^0-9]),", "\g<1> , ", s)
         s = re.sub(",([^0-9])", " , \g<1>", s)
         s = re.sub("^(')", "\g<1> ", s)
-        s = re.sub("(" + regex_not_letter_number + ")'", "\g<1> '", s)
-        s = re.sub("(" + regex_clitics + ")$", " \g<1>", s)
-        s = re.sub("(" + regex_clitics + ")(" + regex_not_letter_number + ")", " \g<1> \g<2>", s)
+        s = re.sub(f"({regex_not_letter_number})'", "\g<1> '", s)
+        s = re.sub(f"({regex_clitics})$", " \g<1>", s)
+        s = re.sub(f"({regex_clitics})({regex_not_letter_number})", " \g<1> \g<2>", s)
 
         words = s.strip().split()
-        p1 = re.compile(".*" + regex_letter_number + "\\.")
+        p1 = re.compile(f".*{regex_letter_number}" + "\\.")
         p2 = re.compile("^([A-Za-z]\\.([A-Za-z]\\.)+|[A-Z][bcdfghj-nptvxz]+\\.)$")
 
         token_list = []
@@ -74,8 +74,7 @@ class EnglishTokenizer(object):
             m2 = p2.match(word)
 
             if m1 and word not in abbreviations_list and not m2:
-                token_list.append(word[0: word.find('.')])
-                token_list.append(word[word.find('.')])
+                token_list.extend((word[:word.find('.')], word[word.find('.')]))
             else:
                 token_list.append(word)
 

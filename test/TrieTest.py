@@ -61,7 +61,7 @@ class TrieTest(unittest.TestCase):
         trie.insert("play", "PlayVerb")
         trie.insert("the big bang theory", "Television Series")
         results = list(trie.gather("1 of the big bang theory"))
-        assert len(results) == 0
+        assert not results
 
     def test_insert_single_character_entity(self):
         trie = Trie()
@@ -79,7 +79,7 @@ class TrieTest(unittest.TestCase):
 
         assert trie.remove("1")
         results = list(trie.lookup("1"))
-        assert len(results) == 0
+        assert not results
 
     def test_named_remove(self):
         trie = Trie()
@@ -102,7 +102,7 @@ class TrieTest(unittest.TestCase):
         results = list(trie.lookup("estaurant"))
         assert len(results) == 1
         results = list(trie.lookup("estauran"))
-        assert len(results) == 0
+        assert not results
 
     def test_edit_distance_confidence(self):
         trie = Trie(max_edit_distance=2)
@@ -123,7 +123,7 @@ class TrieTest(unittest.TestCase):
         trie = Trie(max_edit_distance=2)
         trie.insert("1", "Number")
         results = list(trie.gather("of the big bang theory"))
-        assert len(results) == 0
+        assert not results
 
 
     def tearDown(self):

@@ -97,8 +97,7 @@ def bronk(r, p, x, graph):
         r_new.append(vertex)
         p_new = [val for val in p if val in graph.get_neighbors_of(vertex)] # p intersects N(vertex)
         x_new = [val for val in x if val in graph.get_neighbors_of(vertex)] # x intersects N(vertex)
-        for result in bronk(r_new, p_new, x_new, graph):
-            yield result
+        yield from bronk(r_new, p_new, x_new, graph)
         p.remove(vertex)
         x.append(vertex)
 
@@ -113,8 +112,7 @@ def get_cliques(vertices, graph):
     Yields:
         list: a clique from the graph
     """
-    for clique in bronk([], vertices, [], graph):
-        yield clique
+    yield from bronk([], vertices, [], graph)
 
 
 def graph_key_from_tag(tag, entity_index):
@@ -129,7 +127,12 @@ def graph_key_from_tag(tag, entity_index):
     """
     start_token = tag.get('start_token')
     entity = tag.get('entities', [])[entity_index]
-    return str(start_token) + '-' + entity.get('key') + '-' + str(entity.get('confidence'))
+    return (
+        f'{str(start_token)}-'
+        + entity.get('key')
+        + '-'
+        + str(entity.get('confidence'))
+    )
 
 
 class Lattice(object):
@@ -240,7 +243,7 @@ class BronKerboschExpander(object):
         for tag in tags:
             for entity_index in xrange(len(tag.get('entities'))):
                 node_name = graph_key_from_tag(tag, entity_index)
-                if not node_name in entities:
+                if node_name not in entities:
                     entities[node_name] = []
                 entities[node_name] += [
                     tag.get('entities', [])[entity_index],
@@ -263,8 +266,7 @@ class BronKerboschExpander(object):
                     'from_context': old_tag.get('from_context', False)
                 }
                 result.append(tag)
-            result = sorted(result, key=lambda e: e.get('start_token'))
-            yield result
+            yield sorted(result, key=lambda e: e.get('start_token'))
 
     def expand(self, tags, clique_scoring_func=None):
         """This is the main function to expand tags into cliques
@@ -281,7 +283,7 @@ class BronKerboschExpander(object):
         overlapping_spans = []
 
         def end_token_index():
-            return max([t.get('end_token') for t in overlapping_spans])
+            return max(t.get('end_token') for t in overlapping_spans)
 
         for i in xrange(len(tags)):
             tag = tags[i]

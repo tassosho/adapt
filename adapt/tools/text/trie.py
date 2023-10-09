@@ -43,9 +43,9 @@ class TrieNode(object):
         yields:
             object: yields the results of the search
         """
-        if self.is_terminal:
-            if index == len(iterable) or \
-                    (gather and index < len(iterable) and iterable[index] == ' '):  # only gather on word break)
+        if index == len(iterable) or \
+                        (gather and index < len(iterable) and iterable[index] == ' '):
+            if self.is_terminal:  # only gather on word break)
                 confidence = float(len(self.key) - edit_distance) / float(max(len(self.key), index))
                 if confidence > match_threshold:
                     yield {
@@ -56,32 +56,47 @@ class TrieNode(object):
                     }
 
         if index < len(iterable) and iterable[index] in self.children:
-            for result in self.children[iterable[index]]\
-                    .lookup(iterable, index + 1, gather=gather,
-                            edit_distance=edit_distance, max_edit_distance=max_edit_distance, matched_length=matched_length + 1):
-                yield result
-
+            yield from self.children[iterable[index]].lookup(
+                iterable,
+                index + 1,
+                gather=gather,
+                edit_distance=edit_distance,
+                max_edit_distance=max_edit_distance,
+                matched_length=matched_length + 1,
+            )
         # if there's edit distance remaining and it's possible to match a word above the confidence threshold
         potential_confidence = float(index - edit_distance + (max_edit_distance - edit_distance)) / \
-                               (float(index) + (max_edit_distance - edit_distance)) if index + max_edit_distance - edit_distance > 0 else 0.0
+                                   (float(index) + (max_edit_distance - edit_distance)) if index + max_edit_distance - edit_distance > 0 else 0.0
         if edit_distance < max_edit_distance and potential_confidence > match_threshold:
             for child in list(self.children):
                 if index >= len(iterable) or child != iterable[index]:
                     # substitution
-                    for result in self.children[child]\
-                        .lookup(iterable, index + 1, gather=gather,
-                                edit_distance=edit_distance + 1, max_edit_distance=max_edit_distance, matched_length=matched_length):
-                        yield result
+                    yield from self.children[child].lookup(
+                        iterable,
+                        index + 1,
+                        gather=gather,
+                        edit_distance=edit_distance + 1,
+                        max_edit_distance=max_edit_distance,
+                        matched_length=matched_length,
+                    )
                     # delete
-                    for result in self.children[child]\
-                        .lookup(iterable, index + 2, gather=gather,
-                                edit_distance=edit_distance + 1, max_edit_distance=max_edit_distance, matched_length=matched_length):
-                        yield result
+                    yield from self.children[child].lookup(
+                        iterable,
+                        index + 2,
+                        gather=gather,
+                        edit_distance=edit_distance + 1,
+                        max_edit_distance=max_edit_distance,
+                        matched_length=matched_length,
+                    )
                     # insert
-                    for result in self.children[child]\
-                        .lookup(iterable, index, gather=gather,
-                                edit_distance=edit_distance + 1, max_edit_distance=max_edit_distance, matched_length=matched_length):
-                        yield result
+                    yield from self.children[child].lookup(
+                        iterable,
+                        index,
+                        gather=gather,
+                        edit_distance=edit_distance + 1,
+                        max_edit_distance=max_edit_distance,
+                        matched_length=matched_length,
+                    )
 
     def insert(self, iterable, index=0, data=None, weight=1.0):
         """Insert new node into tree
@@ -122,22 +137,19 @@ class TrieNode(object):
             True: if it was removed
             False: if it was not removed
         """
-        if index == len(iterable):
-            if self.is_terminal:
-                if data:
-                    self.data.remove(data)
-                    if len(self.data) == 0:
-                        self.is_terminal = False
-                else:
-                    self.data.clear()
+        if index == len(iterable) and self.is_terminal:
+            if data:
+                self.data.remove(data)
+                if len(self.data) == 0:
                     self.is_terminal = False
-                return True
             else:
-                return False
-        elif iterable[index] in self.children:
-            return self.children[iterable[index]].remove(iterable, index=index+1, data=data)
-        else:
+                self.data.clear()
+                self.is_terminal = False
+            return True
+        elif index == len(iterable) or iterable[index] not in self.children:
             return False
+        else:
+            return self.children[iterable[index]].remove(iterable, index=index+1, data=data)
 
 
 class Trie(object):
@@ -171,8 +183,7 @@ class Trie(object):
         """Calls the lookup with gather True Passing iterable and yields
         the result.
         """
-        for result in self.lookup(iterable, gather=True):
-            yield result
+        yield from self.lookup(iterable, gather=True)
 
     def lookup(self, iterable, gather=False):
         """Call the lookup on the root node with the given parameters.
@@ -184,12 +195,13 @@ class Trie(object):
         Notes:
             max_edit_distance and match_threshold come from the init
         """
-        for result in self.root.lookup(iterable,
-                                       gather=gather,
-                                       edit_distance=0,
-                                       max_edit_distance=self.max_edit_distance,
-                                       match_threshold=self.match_threshold):
-            yield result
+        yield from self.root.lookup(
+            iterable,
+            gather=gather,
+            edit_distance=0,
+            max_edit_distance=self.max_edit_distance,
+            match_threshold=self.match_threshold,
+        )
 
     def insert(self, iterable, data=None, weight=1.0):
         """Used to insert into he root node
